@@ -1,0 +1,396 @@
+---
+title: "CUNY SPS - Master of Science in Data Science - DATA605"
+author: "Mario Pena"
+date: "May 22, 2020"
+output:
+  html_document:
+    toc: yes
+    toc_depth: 3
+    toc_float: yes
+  pdf_document:
+    toc: yes
+    toc_depth: '3'
+    latex_engine: xelatex
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+## Computational Mathematics Final Project
+
+### Problem 1.
+
+Using R, generate a random variable X that has 10,000 random uniform numbers from 1 to $N$, where $N$ can be any number of your choosing greater than or equal to 6.  Then generate a random variable Y that has 10,000 random normal numbers with a mean of $\mu =\sigma =\frac { N+1 }{ 2 }$
+
+We will generate the requested random variable X and Y below:
+
+```{r}
+set.seed(9)
+N <- 25
+X <- runif(10000, min = 1, max = N)
+Y <- rnorm(10000, mean = (N+1)/2)
+```
+
+*Probability*. Calculate as a minimum the below probabilities a through c.  Assume the small letter "x" is estimated as the median of the X variable, and the small letter "y" is estimated as the 1st quartile of the Y variable.  Interpret the meaning of all probabilities. 
+
+```{r}
+summary(X)
+summary(Y)
+```
+
+**a**. $P(X>x\quad |\quad X>y)$
+
+To find the probability we have to remember that $P(A\quad |\quad B)=P(A\quad and\quad B)/P(B)$, thus this will be equal to $P(X>x\quad and\quad X>y)/P(X>y)$
+
+```{r}
+x <- median(X)
+y <- quantile(Y, 0.25)
+
+sum(X>x & X>y)/sum(X>y)
+```
+
+This means that there is roughly a 93.8% probability that the variable X is greater than its median of 13.149 given that this same variable is greater than the 1st quartile of the Y variable at 12.315.
+
+**b**. $P(X>x,\quad Y>y)$
+
+This is equivalent to finding $P(X>x\quad and\quad Y>y)$
+
+```{r}
+sum(X>x & Y>y)/length(X)
+```
+
+This means that there is a 37.83% probability that the variable X is greater than its median of 13.149 while variable Y is greater than its 1st quartile of 12.315.
+
+**c**. $P(X<x\quad |\quad X>y)$
+
+This probability is similar to the first one but here we will find the probability that $X<x$ given $X>y$, thus is is the same as $P(X<x\quad and\quad X>y)/P(X>y)$
+
+```{r}
+sum(X<x & X>y)/sum(X>y)
+```
+
+This means that there is roughly a 6.2% probability that the variable X is less than its median of 13.149 given that this same variable is greater than the 1st quartile of the Y variable at 12.315.
+
+**Investigate whether $P(X>x\quad and\quad Y>y)=P(X>x)P(Y>y)$ by building a table and evaluating the marginal and joint probabilities.**
+
+```{r}
+library(kableExtra)
+
+tabl <- c(sum(X<x & Y<y), sum(X<x & Y>y))
+tabl <- rbind(tabl, c(sum(X>x & Y<y), sum(X>x & Y>y)))
+tabl <- cbind(tabl, tabl[,1] + tabl[,2])
+tabl <- rbind(tabl, tabl[1,] + tabl[2,])
+
+colnames(tabl) <- c("Y<y", "Y>y", "Total")
+rownames(tabl) <- c("X<x", "X>x", "Total")
+
+tabl %>% kable() %>%  kable_styling()
+```
+
+In one of our previous questions we had established that $P(X>x\quad and\quad Y>y)$ was equal to 37.83%, but we will use the table we have created above to verify this is true and also to find $P(X>x)P(Y>y)$.
+
+Please note that in order to simplify our variable names we will refer to $X>x$ simply as $Xx$, and $Y>y$ simply as $Yy$ in our calculations below:
+
+```{r}
+Xx <- tabl[2, 3] #this is total X>x located in row 2 column 3
+Yy <- tabl[3, 2] #this is total Y>y located in row 3 column 2
+Xx_Yy <- tabl[2, 2] #this is the interception of X>x and Y>y located in row 2 column 2
+total <- tabl[3, 3]
+
+prob_Xx <- Xx/total
+prob_Yy <- Yy/total
+prob_Xx_Yy <- Xx_Yy/total
+
+prob_Xx
+prob_Yy
+prob_Xx_Yy
+prob_Xx*prob_Yy
+```
+
+As we can see from our results, we were able to verify that $P(X>x\quad and\quad Y>y)$ is equal to 37.83%. We also found the solution to $P(X>x)P(Y>y)$, which is 37.5% and it does not equal $P(X>x\quad and\quad Y>y)$. They are indeed very close though.
+
+**Check to see if independence holds by using Fisher’s Exact Test and the Chi Square Test.  What is the difference between the two? Which is most appropriate?**
+
+We will use the built in `fisher.test` and `chisq.test` functions in R to determine independence.
+
+```{r}
+fisher.test(table(X>x, Y>y))
+```
+
+The results of the Fisher's Exact test show a p-value that is not close to 0, it is larger than a significance level of 0.05, thus we do not reject the null hypothesis. In other words, the variables are independent, there is no relationship between X>x and Y>y.
+
+```{r}
+chisq.test(table(X>x, Y>y))
+```
+
+We first see that X-squared is not a very large number, which suggests evidence against the alternative hypothesis. Second, since our results of the Chi-Squared test show a p-value that is not close to 0, it is larger than a significance level of 0.05, thus we do not reject the null hypothesis. In other words, the variables are independent, there is no relationship between X>x and Y>y.
+
+In this case I would say that the Chi Square Test is the most appropriate since we have a sample of 10,000. The Fisher's Exact Test is used when the sample is small, however, we are able to see that the result for both tests gave us the same p-value.
+
+
+### Problem 2.
+
+You are to register for Kaggle.com (free) and compete in the House Prices: Advanced Regression Techniques competition.  https://www.kaggle.com/c/house-prices-advanced-regression-techniques. I want you to do the following.
+
+**Descriptive and Inferential Statistics. Provide univariate descriptive statistics and appropriate plots for the training data set.  Provide a scatterplot matrix for at least two of the independent variables and the dependent variable. Derive a correlation matrix for any three quantitative variables in the dataset.  Test the hypotheses that the correlations between each pairwise set of variables is 0 and provide an 80% confidence interval.  Discuss the meaning of your analysis.  Would you be worried about familywise error? Why or why not?**
+
+I have saved the data in a Github repository, thus I will be loading the data from there:
+
+```{r}
+train_df <- read.csv ('https://raw.githubusercontent.com/marioipena/FinalProjectDATA605/master/train.csv', header=TRUE, stringsAsFactors = FALSE)
+```
+
+Let's take a look at the descriptive statistics of our variables and at some of the plots:
+
+```{r}
+summary(train_df)
+```
+
+We will pick a few independent variables for the "SalePrice" variable from our data to provide the required plots.
+
+```{r}
+library(ggplot2)
+
+plot1 <- ggplot(train_df, aes(LotArea, color = )) + geom_freqpoly(col = "red", binwidth = 4000, lwd = 1, na.rm = TRUE, position = "identity") + labs(title = "Frequency Polygon Histogram of Lot Area", x = "Area (sq ft)", y = "Count") + theme(plot.title = element_text(size = 11))
+
+plot2 <- ggplot(train_df, aes(YearBuilt, color = )) + geom_histogram(col = "blue", binwidth = 5, lwd = 1, na.rm = TRUE, position = "identity") + labs(title = "Histogram of Year Built", x = "Year", y = "Count")
+
+plot3 <- ggplot(train_df, aes(TotalBsmtSF, color =)) + geom_histogram(col = "green", binwidth = 300, fill = "red", alpha = 0.2, lwd = 1, na.rm = TRUE, position = "identity") + labs(title = "Histogram of Total Basement Area", x = "Area (sq ft)", y = "Count")
+
+plot4 <- ggplot(train_df, aes(GrLivArea, color =)) + geom_histogram(col = "black", binwidth = 400, fill = "deeppink4", alpha = 0.4, lwd = 1, na.rm = TRUE, position = "identity") + labs(title = "Histogram of Total Living Area", x = "Area (sq ft)", y = "Count") + theme(plot.title = element_text(size = 12))
+
+plot5 <- ggplot(train_df, aes(TotRmsAbvGrd, color =)) + geom_bar(fill = "khaki4", alpha = 0.7, lwd = 1, na.rm = TRUE, position = "identity") + labs(title = "Histogram of Total Rooms", x = "Number of Rooms", y = "Count") + theme(plot.title = element_text(size = 12))
+
+plot6 <- ggplot(train_df, aes(SalePrice, color =)) + geom_histogram(col = "gray", fill = "dark blue", alpha = 0.7, lwd = 1, na.rm = TRUE, position = "identity", binwidth = 10000) + labs(title = "Histogram of Sale Price", x = "Price in USD", y = "Count") + theme(plot.title = element_text(size = 12))
+```
+
+```{r}
+require(gridExtra)
+grid.arrange(plot1, plot2, ncol=2)
+grid.arrange(plot3, plot4, ncol=2)
+grid.arrange(plot5, plot6, ncol=2)
+```
+
+
+Let's examine the scatterplot matrix and correlation matrix:
+
+```{r}
+train_var <- train_df[ , c(5,20,39,47,55,81)]
+plot(train_var , pch=20 , cex=1.5 , col="dark blue")
+```
+
+Although, not entirely clear, the variables that seem to have the strongest correlation with "SalePrice" are "TotalBsmtSF" and "GrLivArea".
+
+We will explore these variables further:
+
+```{r}
+library(corrplot)
+train_cor <- cor(train_var)
+print(train_cor)
+corrplot(train_cor)
+```
+
+As expected, "TotalBsmtSF" and "GrLivArea" have the strongest correlation coefficients in regards to "SalesPrice" among the variables we chose to look at.
+
+Lastly, we will test the hypotheses that the correlations between each pairwise set of variables is 0 and provide an 80% confidence interval.
+
+SalePrice and TotalBsmtSF:
+
+```{r}
+cor.test(train_var$SalePrice, train_var$TotalBsmtSF, conf.level = 0.8)
+```
+
+We can see from our results that p-value is close to 0, which means that is less than a significance level of 0.05, thus we reject the null hypothesis and conclude that there is a correlation between "SalePrice" and "TotalBsmtSF". We are 80% confident that the correlation coefficient of these two variables is roughly between 0.59 and 0.64.
+
+SalePrice and GrLivArea:
+
+```{r}
+cor.test(train_var$SalePrice, train_var$GrLivArea, conf.level = 0.8)
+```
+
+In this case, we can also see from our results that p-value is close to 0, which means that is less than a significance level of 0.05, thus we reject the null hypothesis and conclude that there is a correlation between "SalePrice" and "GrLivArea". We are 80% confident that the correlation coefficient of these two variables is roughly between 0.69 and 0.73.
+
+TotalBsmtSF and GrLivArea:
+
+```{r}
+cor.test(train_var$TotalBsmtSF, train_var$GrLivArea, conf.level = 0.8)
+```
+
+Lastly, the resulting p-value from our test is close to 0, which means that is less than a significance level of 0.05, thus we reject the null hypothesis and conclude that there is a correlation between "TotalBsmtSF" and "GrLivArea". We are 80% confident that the correlation coefficient of these two variables is roughly between 0.42 and 0.49.
+
+We have a large number of variables in these dataset, which means that we could conduct multiple hypotheses tests to look for correlation and other indicators of a relationship between variables. The more tests we conduct the greater the concern for familywise error and the probability of making one or more false discoveries, or type I errors.
+
+**Linear Algebra and Correlation.  Invert your correlation matrix from above. (This is known as the precision matrix and contains variance inflation factors on the diagonal.) Multiply the correlation matrix by the precision matrix, and then multiply the precision matrix by the correlation matrix. Conduct LU decomposition on the matrix.**
+
+In order to simplify the correlation matrix that I created above, I will reduce it to 3 variables in order to make it more clear. I will use the variable "SalesPrice" and the two variables with the strongest correlation to it, which are "TotalBsmtSF" and "GrLivArea":
+
+```{r}
+train_var2 <- train_df[ , c(39,47,81)]
+
+correlation_matx <- cor(train_var2)
+precision_matx <- solve(correlation_matx)
+
+cm_pm <- round((correlation_matx %*% precision_matx), 2)
+cm_pm
+
+pm_cm <- round((precision_matx %*% correlation_matx), 2)
+pm_cm
+```
+
+As we can see, both of the multiplications produce an identity matrix.
+
+LU Decomposition:
+
+```{r}
+library(Matrix)
+lu_cor <- lu(correlation_matx)
+lud_cor <- expand(lu_cor)
+
+lu_pre <- lu(precision_matx)
+lud_pre <- expand(lu_pre)
+
+lud_cor
+lud_pre
+```
+
+We now that A = LU, so we will check if we get our original matrices when multiplying both together.
+
+```{r}
+cor_L <- lud_cor$L
+cor_U <- lud_cor$U
+
+pre_L <- lud_pre$L
+pre_U <- lud_pre$U
+
+correlation_matx
+cor_L %*% cor_U
+
+precision_matx
+pre_L %*% pre_U
+```
+
+We get the corresponding matrices when multiplying L and U.
+
+**Calculus-Based Probability & Statistics.  Many times, it makes sense to fit a closed form distribution to data.  Select a variable in the Kaggle.com training dataset that is skewed to the right, shift it so that the minimum value is absolutely above zero if necessary.  Then load the MASS package and run fitdistr to fit an exponential probability density function.  (See  https://stat.ethz.ch/R-manual/R-devel/library/MASS/html/fitdistr.html ).  Find the optimal value of $\lambda$ for this distribution, and then take 1000 samples from this exponential distribution using this value (e.g., rexp(1000, $\lambda$)).  Plot a histogram and compare it with a histogram of your original variable.   Using the exponential pdf, find the 5th and 95th percentiles using the cumulative distribution function (CDF).   Also generate a 95% confidence interval from the empirical data, assuming normality.  Finally, provide the empirical 5th percentile and 95th percentile of the data. Discuss.**
+
+```{r}
+hist(train_var2$GrLivArea, main = "Distribution of Gross Living Area", xlab = "Area (sq ft)")
+
+min(train_var2$GrLivArea)
+```
+
+The minimum value of this variable is 334 so we will not need to shift it.
+
+```{r}
+library(MASS)
+set.seed(20)
+(fexp <- fitdistr(train_var2$GrLivArea, "exponential"))
+samples <- rexp(1000, fexp$estimate)
+
+hist(train_var2$GrLivArea, breaks=30, prob=TRUE, main = "Distribution of Gross Living Area", xlab = "Area (sq ft)")
+
+hist(samples, breaks=30, prob=TRUE, main = "Distribution of Sample Gross Living Area", xlab = "Sample Area (sq ft)")
+```
+
+We see that the sample distribution is a lot more skewed to the right and its highest frequency is near zero.
+
+Finding the 5th and 95th percentiles using the cumulative distribution function (CDF):
+
+```{r}
+Samp_cdf <- ecdf(samples)
+samples[Samp_cdf(samples)==0.05]
+samples[Samp_cdf(samples)==0.95]
+```
+
+Generating a 95% confidence interval from the empirical data, assuming normality:
+
+```{r}
+library(Rmisc)
+CI(train_var2$GrLivArea, ci = 0.95)
+```
+
+Providing the empirical 5th percentile and 95th percentile of the data:
+
+```{r}
+quantile(train_var2$GrLivArea, probs = c(0.05, 0.95))
+```
+
+The differences in the percentiles between our empirical data and sample data can be explained through our distribution plots; the frequencies were distributed differently. We saw that the minimum number of our empirical data was 334, whereas the highest frequency of our sample data was near zero with greater sknewness to the right.
+
+**Modeling.  Build some type of multiple regression  model and submit your model to the competition board. Provide your complete model summary and results with analysis.  Report your Kaggle.com user name and score.**
+
+*Kaggle Username: mariopena*
+
+*Kaggle Competition Score: 0.85277*
+
+We will first find variables that have a correlation coefficient greater than 0.5 in regards to Sale Price in order to build our first multiple regression model:
+
+```{r}
+num_Vars <- which(sapply(train_df, is.numeric))
+
+all_num_Var <- train_df[, num_Vars]
+all_num_Var <- all_num_Var[-c(1)]
+cor_num_Var <- cor(all_num_Var, use="pairwise.complete.obs")
+
+cor_sorted <- as.matrix(sort(cor_num_Var[,'SalePrice'], decreasing = TRUE))
+
+Cor_High <- names(which(apply(cor_sorted, 1, function(x) abs(x)>0.5)))
+cor_num_Var <- cor_num_Var[Cor_High, Cor_High]
+corrplot(cor_num_Var)
+```
+
+```{r}
+model <- lm(SalePrice ~ ., data = all_num_Var[Cor_High])
+
+summary(model)
+```
+
+We get an $R^2$ of 0.7737 in our first model, which is pretty good. This means that roughly 77% variance of the sale price can be explained by the predictor variables in this particular model. We also have a p-value close to zero, which supports the idea that we've constructed a good model.
+
+Now let's get rid of some variables in order to see if we can improve the model. We can eliminate the variables that have a p-value greater than 0.05:
+
+```{r}
+model2 <- lm(SalePrice ~ OverallQual + GrLivArea + GarageCars + TotalBsmtSF + X1stFlrSF + FullBath + YearBuilt + YearRemodAdd, data = all_num_Var)
+
+summary(model2)
+```
+
+Our $R^2$ has decreased slightly to 0.7734, which means we did not improved the model. However, we managed to make sure that our model consists of variables that are significant predictors of Sale Price. We will use this second model for our prediction.
+
+Let's also perform some residual analysis to determine whether our model is appropriate:
+
+```{r}
+plot(fitted(model2), resid(model2))
+abline(h = 0, lty = 3)
+hist(model2$residuals)
+qqnorm(model2$residuals)
+qqline(model2$residuals)
+```
+
+Although the residuals look nearly normal in the normal probability plot, we realize that there are significant outliers that may skew our data as evident in the residual plot and normal q-q plot. We conclude that the residuals are not nearly normal. The model we created may not be appropriate for predicting Sale Price. For the purposes of this assignment we will go ahead with our prediction.
+
+We will make the predictions using our second model:
+
+```{r}
+test_df <- read.csv ('https://raw.githubusercontent.com/marioipena/FinalProjectDATA605/master/test.csv', header=TRUE, stringsAsFactors = FALSE)
+
+predict_model2 <- test_df
+
+predict_model2$salePrice <- predict(model2, test_df)
+
+# Kaggle dataset
+Id <- test_df$Id
+salePrice <- predict_model2$salePrice
+kaggle_modelDF <- data.frame(cbind(Id, salePrice))
+kaggle_modelDF[is.na(kaggle_modelDF)] <- 0
+
+head(kaggle_modelDF)
+```
+
+```{r echo=FALSE}
+write.csv(kaggle_modelDF,'kaggle_model.csv', row.names = FALSE)
+```
+
+*Kaggle Username: mariopena*
+
+*Kaggle Competition Score: 0.85277*
